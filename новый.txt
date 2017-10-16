@@ -1,0 +1,588 @@
+﻿        создание виртуальной среды
+1)создаем папку learning_log
+
+2)переходим туда в термианльном режиме python -m venv ll_env
+	-если не сработало
+		pip install --user virtualenv
+	-for Ubuntu system: virtualenv ll_env
+	-for python version: virtualenv ll_env --python=python3
+
+3)Активизация вирт.среды
+Windows: ll_env\Scripts\activate
+Ubuntu: source ll_env/bin/activate
+
+!!!: Чтобы завершить использование виртуальной среды, введите команду  deactivate :
+(ll_env)learning_log$ deactivate
+learning_log$
+Среда также становится неактивной при закрытии терминального окна, в котором
+она работает.
+
+4)Установка Django
+	-pip install django
+
+!!!: Помните, что с Django можно работать только в то время, пока среда остается
+активной.
+
+4)Создание проекта Django
+	Windows: ll_env\Scripts\django-admin.exe startproject learning_log .
+		dir
+		learning_log
+		ll_env
+		manage.py
+	Ubuntu: django-admin.py startproject learning_log .
+		ls
+		learning_log
+		ll_env
+		manage.py
+
+!!!: Точка в конце команды создает новый проект со структурой каталогов, которая
+упрощает развертывание приложения на сервере после завершения разработки.
+
+ manage .py — короткая программа, которая
+получает команды и передает их соответствующей части Django для выполнения.
+Мы используем эти команды для управления такими задачами, как работа с базами
+данных и запуск серверов.
+
+В каталоге  learning_log находятся четыре файла ?, важнейшими из которых явля-
+ются файлы  settings .py ,  urls .py и  wsgi .py . Файл  settings .py определяет то, как Django
+взаимодействует с вашей системой и управляет вашим проектом. Мы изменим
+некоторые из существующих настроек и добавим несколько новых настроек в ходе
+разработки проекта. Файл  urls .py сообщает Django, какие страницы следует строить
+в ответ на запросы браузера. Файл  wsgi .py помогает Django предоставлять создан-
+ные файлы (имя файла является сокращением от «Web Server Gateway Interface»).
+
+5)Создание БД
+	-python manage.py migrate
+	-dir
+	-...db.sqlite3
+
+6)Просмотр проекта
+	-python manage.py runserver
+Если порт уже используется
+	-python manage.py runserver 8001
+
+
+7)Начало работы над приложением
+-на одном cmd сервер должен работать
+-Откройте новое терминальное окно (или вкладку)и перейдите в каталог, содержащий  manage .py . Активизируйте виртуальную среду
+и выполните команду  startapp :
+-Ubuntu: learning_log$ source ll_env/bin/activate
+-(ll_env)learning_log$ python manage.py startapp learning_logs
+-(ll_env)learning_log$ ls
+db.sqlite3 learning_log learning_logs ll_env manage.py
+-(ll_env)learning_log$ ls learning_logs/
+admin.py __init__.py migrations models.py tests.py views.py
+
+8)Определение моделей
+
+models.py
+class Topic(models.Model):
+	'Тема, которую изучает пользователь'
+	text = models.CharField(max_length=200)
+	date_added = models.DateTimeField(auto_now_add=True)
+	
+	def __str__(self):
+		'Возвращает строковое представление модели'
+		return self.text
+	
+9)Активизация моделей
+settings.py
+...
+INSTALLED_APPS = (
+...
+'django.contrib.staticfiles',
+# Мои приложения
+'learning_logs',
+)
+...
+
+Затем необходимо приказать Django изменить базу данных для хранения инфор-
+мации, относящейся к модели  Topic . В терминальном окне введите следующую
+команду:
+python manage.py makemigrations learning_logs
+python manage.py migrate
+
+!!!: Каждый раз, когда вы захотите изменить данные, которыми управляет Learning
+Log, выполните эти три действия: внесите изменения в  models .py , вызовите
+makemigrations для  learning_logs и прикажите Django выполнить миграцию про-
+екта ( migrate ).
+
+--------------------Административный сайт Django---------------------------------
+10)Создание суперпользователья
+-python manage.py createsuperuser
+
+11)Регистрация модели на административном сайте
+admin.py
+from django.contrib import admin
+# Зарегистрируйте здесь ваши модели.
+Чтобы зарегистрировать  Topic на административном сайте, введите следующую
+команду:
+from django.contrib import admin
+? from learning_logs.models import Topic
+? admin.site.register(Topic)
+
+ -http://localhost:8000/admin/
+ 
+ Добавление тем:
+	Chess
+	Rock Climbing
+	
+12)Определение модели Entry
+models.py
+class Entry(models.Model):
+	'Информация, изученная пользователем по теме'
+	topic = models.ForeignKey(Topic)
+	text = models.TextField()
+	date_added = models.DateTimeField(auto_now_add=True)
+	
+	class Meta:
+		verbose_name_plural='entries'
+		
+	def __str__(self):
+		'Возвращает строковое представление модели'
+		return self.text[:50]+'...'
+		
+Класс  Entry наследует от базового класса  Model , как и рассмотренный ранее класс
+Topic ?. Первый атрибут,  topic , является экземпляром  ForeignKey ?. Термин
+«внешний ключ» (foreign key) происходит из теории баз данных; внешний ключ со-
+держит ссылку на другую запись в базе данных. Таким образом каждая запись свя-
+зывается с конкретной темой. Каждой теме при создании присваивается ключ, или
+идентификатор. Если потребуется установить связь между двумя записями данных,
+Django использует ключ, связанный с каждым блоком информации. Вскоре мы
+используем такие связи для получения всех записей, связанных с заданной темой.
+Затем идет атрибут с именем  text , который является экземпляром  TextField ?.
+Полю такого типа ограничение размера не требуется, потому что размер отдельных
+записей не ограничивается. Атрибут  date_added позволяет отображать записи в по-
+рядке их создания и снабдить каждую запись временной меткой.
+В точке ? класс  Meta вкладывается в класс  Entry . Класс  Meta хранит дополнитель-
+ную информацию по управлению моделью; в данном случае он позволяет задать
+специальный атрибут, который приказывает Django использовать форму мно-
+жественного числа  Entries при обращении более чем к одной записи. (Без этого
+Django будет использовать неправильную форму  Entrys .) Наконец, метод  __str__()
+сообщает Django, какая информация должна отображаться при обращении к от-
+дельным записям. Так как запись может быть достаточно длинным блоком текста,
+мы приказываем Django выводить только первые 50 символов ?. Также добавля-
+ется многоточие — признак вывода неполного текста.
+
+13)Миграция модели Etry
+-python manage.py makemigrations learning_logs
+-python manage.py migrate
+
+14)Регистрация Entry на административном сайте
+admin.py
+from learning_logs.models import Topic, Entry
+admin.site.register(Topic)
+admin.site.register(Entry)
+
+15)Интерактивная оболочка Django
+Введенные данные можно проанализировать на программном уровне в интерактив-
+ном терминальном сеансе. Эта интерактивная среда, называемая оболочкой (shell)
+Django, прекрасно подходит для тестирования и диагностики проекта. Пример
+сеанса в интерактивной оболочке:
+(ll_env)learning_log$ python manage.py shell
+>>> from learning_logs.models import Topic
+>>> Topic.objects.all()
+
+topics = Topic.objects.all()
+>>> for topic in topics:
+... print(topic.id, topic)
+
+>>> t = Topic.objects.get(id=1)
+>>> t.text
+'Chess'
+>>> t.date_added
+
+t.entry_set.all()
+
+----------Создание страниц--------------------
+16)Сопоставление URL
+создаем файл urls.py in learning_logs
+
+'Определяет схемы URL для learning_logs'
+from django.conf.urls import url
+from . import views  
+'''точка приказывает Python импортировать представления из каталога, в котором
+находится текущий модуль  urls .py'''
+
+urlpatterns = [
+	'Домашняя страница'
+	url(r'^$', views.index, name='index'),
+]
+
+17)Написание представления
+views.py
+from django.shortcuts import render
+
+# Create your views here.
+
+def index(request):
+	'Домашняя страница приложения Learning log'
+	return render(request, 'learning_logs/index.html')
+	
+18)Написание шаблона
+\learning_logs\templates\learning_logs\index.html
+'Определяет схемы URL для learning_logs'
+from django.conf.urls import url
+from . import views
+
+urlpatterns = [
+	#Домашняя страница
+	url(r'^$', views.index, name='index'),
+]
+
+-------------------Наследование шаблонов---------------------------
+19)Родительский шаблона
+base.html
+<p>
+<a href="{% url 'learning_logs:index' %}">Learning Log</a>
+</p>
+{% block content %}{% endblock content %}
+
+20)Дочерний шаблона
+index.html
+{%extends "learning_logs/base.html"%}
+
+{%block content%}
+<b>Learning Log helps you keep track of your learning, for any topic you're
+learning about.</b>
+{%endblock content%}
+
+---------------------Страница со списком тем----------------------
+20)Схема URL для тем
+learning_logs/urls.py
+url(r'^topics/$', views.topics, name='topics')
+
+21)Представление topics
+from .models import Topic
+
+def topics(request):
+	"Выводит список тем"
+	topics = Topic.objects.order_by('date_added')
+	context = {'topics': topics}
+	return render(request, 'learning_logs/topics.html', context)
+	
+22)Шаблон topics
+{%extends "learning_logs/base.html"%}
+
+{%block content%}
+<p>Topics</p>
+
+<ul>
+	{%for topic in topics%}
+		<li>{{topic}}</li>
+	{%empty%}
+		<li>No topics have been added yet.</li>
+	{%endof%}
+</ul>
+
+{%endblock content%}
+
+23)Изменяем базовый шаблона
+base.html
+<p>
+ <a href="{% url 'learning_logs:index' %}">Learning Log</a> -
+ <a href="{% url 'learning_logs:topics' %}">Topics</a>
+</p>
+{% block content %}{% endblock content %}
+
+После ссылки на домашнюю страницу  добавляется дефис, после которого встав-
+ляется ссылка на страницу тем, которая также представлена шаблонным тегом .
+Эта строка приказывает Django сгенерировать ссылку, соответствующую схеме
+URL с именем  'topics' , в  learning_logs/urls .py 
+
+-----------------------Страницы отдельных тем----------------------
+24)Схема URL для отдельных тем
+learning_logs/urls.py
+url(r'^topics/(?P<topic_id>\d+)/$', views.topic, name='topic')
+
+Рассмотрим регулярное выражение в схеме URL,  r'^topics/(?P<topic_id>\d+)/$' .
+Символ  r сообщает Django, что последующая строка должна интерпретироваться
+без дополнительной обработки, а выражение заключено в кавычки. Вторая часть
+выражения,  /(?P<topic_id>\d+)/ , описывает целое число, заключенное между двумя
+косыми чертами; это целое число сохраняется в аргументе  topic_id . Круглые скоб-
+ки, в которые заключена эта часть выражения, сохраняют значение из URL; часть
+?P<topic_id> сохраняет совпавшее значение в  topic_id ; а выражение  \d+ совпадает
+с любым количеством цифр, заключенных между символами косой черты.
+
+25)Представление отдельной темы
+
+views.py
+
+def topic(request, topic_id):
+ """Выводит одну тему и все ее записи."""
+ topic = Topic.objects.get(id=topic_id)
+ entries = topic.entry_set.order_by('-date_added')
+ context = {'topic': topic, 'entries': entries}
+ return render(request, 'learning_logs/topic.html', context)
+ 
+ 26) Шаблон отдельной темы
+topic.html
+{%extends 'learning/base.html'%}
+
+{%block content%}
+
+<p>Topic: {{topic}}</p>
+
+<p>Entries:</p>
+<ul>
+{%for entry in entries%}
+	<li>
+		<p>{{entry.date_added|date:'M d, Y H:i'}}</p>
+		<p>{{entry.text|linebreaks}}</p>
+	</li>
+{%empty%}
+	<li>
+		There are no entries for this topic yet.
+	</li>
+{%endfor%}
+</ul>
+
+{%endblock content%}
+
+26)Ссылки на странице
+topics.html
+...
+{%for topic in topics%}
+	<li>
+		<a href="{%url 'learning_logs:topic' topic.id%}">{{topic}}</a>
+	</li>
+{%empty%}
+
+--------------------------------Учетные записи пользовательей---------------------------------------------
+----------------Редактирование данных-------------------------
+27)Добавление новых тем
+forms.py
+from django import forms
+from .models import Topic
+class TopicForm(forms.ModelForm):
+class Meta:
+ model = Topic
+ fields = ['text']
+ labels = {'text': ''}
+
+ Сначала импортируется модуль  forms и модель, с которой мы будем работать:
+Topic . В точке ? определяется класс с именем  TopicForm , наследующий от  forms.
+ModelForm . Простейшая версия  ModelForm состоит из вложенного класса  Meta ,
+который сообщает Django, на какой модели должна базироваться форма и какие
+поля на ней должны находиться. В точке ? форма создается на базе модели  Topic ,
+а на ней размещается только поле  text ?. Код ? приказывает Django не генериро-
+вать подпись для текстового поля.
+
+28)URL-адрес для new_topic
+
+urls.py
+...
+urlpatterns = [
+...
+# Страница для добавления новой темы
+url(r'^new_topic/$', views.new_topic, name='new_topic'),
+]
+
+29)Функция представления new_topic()
+views.py
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
+from .models import Topic
+from .forms import TopicForm
+...
+def new_topic(request):
+"""Определяет новую тему."""
+? if request.method != 'POST':
+# Данные не отправлялись; создается пустая форма.
+? form = TopicForm()
+else:
+# Отправлены данные POST; обработать данные.
+? form = TopicForm(request.POST)
+? if form.is_valid():
+? form.save()
+? return HttpResponseRedirect(reverse('learning_logs:topics'))
+? context = {'form': form}
+return render(request, 'learning_logs/new_topic.html', context)
+
+30)Шаблон new_topic.html
+{%extends "learning_logs/base.html"%}
+{%block content%}
+	<p>Add a new topic:</p>
+	<form action="{%url 'learning_logs:new_topic%}" method='post'>
+		{%csrf_token%}
+		{{forms.as_p}}
+		<button name="submit">add topic</button>
+	</form>
+
+	{%endblock content%}
+
+31)Создание ссылки на страницу new_topic
+
+topics.html
+{% extends "learning_logs/base.html" %}
+{% block content %}
+<p>Topics</p>
+<ul>
+...
+</ul>
+<a href="{% url 'learning_logs:new_topic' %}">Add a new topic:</a>
+{% endblock content %}
+
+32)Добавление новых записей
+forms.py
+from django import forms
+from .models import Topic, Entry
+class TopicForm(forms.ModelForm):
+...
+class EntryForm(forms.ModelForm):
+class Meta:
+model = Entry
+fields = ['text']
+? labels = {'text': ''}
+? widgets = {'text': forms.Textarea(attrs={'cols': 80})}
+
+33) URL-адрес для new_entry
+# Страница для добавления новой записи
+url(r'^new_entry/(?P<topic_id>\d+)/$', views.new_entry, name='new_entry'),
+
+34) Функция представления new_entry()
+
+views.py
+from django.shortcuts import render
+...
+from .models import Topic
+from .forms import TopicForm, EntryForm
+...
+def new_entry(request, topic_id):
+"""Добавляет новую запись по конкретной теме."""
+? topic = Topic.objects.get(id=topic_id)
+? if request.method != 'POST':
+# Данные не отправлялись; создается пустая форма.
+? form = EntryForm()
+else:
+# Отправлены данные POST; обработать данные.
+? form = EntryForm(data=request.POST)
+if form.is_valid():
+? new_entry = form.save(commit=False)
+? new_entry.topic = topic
+new_entry.save()
+? return HttpResponseRedirect(reverse('learning_logs:topic',
+args=[topic_id]))
+context = {'topic': topic, 'form': form}
+return render(request, 'learning_logs/new_entry.html', context)
+
+35) Шаблон new_entry
+
+new_entry.html
+{% extends "learning_logs/base.html" %}
+{% block content %}
+? <p><a href="{% url 'learning_logs:topic' topic.id %}">{{ topic }}</a></p>
+<p>Add a new entry:</p>
+? <form action="{% url 'learning_logs:new_entry' topic.id %}" method='post'>
+{% csrf_token %}
+{{ form.as_p }}
+<button name='submit'>add entry</button>
+</form>
+{% endblock content %}
+
+36) Создание ссылки на страницу new_entry
+topic.html
+{% extends "learning_logs/base.html" %}
+{% block content %}
+<p>Topic: {{ topic }}</p>
+<p>Entries:</p>
+<p>
+<a href="{% url 'learning_logs:new_entry' topic.id %}">add new entry</a>
+</p>
+<ul>
+...
+</ul>
+{% endblock content %}
+
+-------------Добавление записей---------------------
+36)URL-адрес для edit_entry
+urls.py
+...
+urlpatterns = [
+...
+# Страница для редактирования записи
+url(r'^edit_entry/(?P<entry_id>\d+)/$', views.edit_entry,
+name='edit_entry'),
+]
+
+37)Функция представления edit_entry()
+
+views.py
+from django.shortcuts import render
+...
+from .models import Topic, Entry
+from .forms import TopicForm, EntryForm
+...
+def edit_entry(request, entry_id):
+"""Редактирует существующую запись."""
+? entry = Entry.objects.get(id=entry_id)
+topic = entry.topic
+if request.method != 'POST':
+# Исходный запрос; форма заполняется данными текущей записи.
+? form = EntryForm(instance=entry)
+else:
+# Отправка данных POST; обработать данные.
+? form = EntryForm(instance=entry, data=request.POST)
+if form.is_valid():
+? form.save()
+? return HttpResponseRedirect(reverse('learning_logs:topic',
+args=[topic.id]))
+context = {'entry': entry, 'topic': topic, 'form': form}
+return render(request, 'learning_logs/edit_entry.html', context)
+
+38) Шаблон edit_entry
+Шаблон  edit_entry .html очень похож на  new_entry .html :
+edit_entry.html
+{% extends "learning_logs/base.html" %}
+{% block content %}
+<p><a href="{% url 'learning_logs:topic' topic.id %}">{{ topic }}</a></p>
+<p>Edit entry:</p>
+? <form action="{% url 'learning_logs:edit_entry' entry.id %}" method='post'>
+{% csrf_token %}
+{{ form.as_p }}
+? <button name="submit">save changes</button>
+</form>
+{% endblock content %}
+
+39) Создание ссылки на страницу edit_entry
+topic.html
+...
+{% for entry in entries %}
+<li>
+<p>{{ entry.date_added|date:'M d, Y H:i' }}</p>
+<p>{{ entry.text|linebreaks }}</p>
+<p>
+<a href="{% url 'learning_logs:edit_entry' entry.id %}">edit entry</a>
+</p>
+</li>
+...
+
+--------------Создание учетных записей пользовательей---------------------------------------------
+40) Приложение users
+(ll_env)learning_log$ python manage.py startapp users
+
+41) Добавление пользовательей
+settings.py
+...
+INSTALLED_APPS = (
+...
+# My apps
+'learning_logs',
+'users',
+)
+
+42) Включение URL-адресов из users
+url(r'^users/', include('users.urls', namespace='users')),
+
+43) Страница всхода
+from django.conf.urls import url
+? from django.contrib.auth.views import login
+from . import views
+urlpatterns = [
+# Страница входа
+? url(r'^login/$', login, {'template_name': 'users/login.html'},
+name='login'),
+
+
+
